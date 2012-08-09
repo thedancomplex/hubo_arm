@@ -42,14 +42,14 @@ AC_FUNC_ALLOCA
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
 
-AC_CHECK_LIB([m],[sqrt])
+AC_CHECK_LIB([m],[sqrt],[lach])
 AC_SEARCH_LIBS([cblas_dgemm],[blas], [true], [echo "Failed: need BLAS library" && exit 1])
 AC_SEARCH_LIBS([dgesvd_],[lapack], [true], [echo "Failed: need LAPACK library" && exit 1])
-AC_SEARCH_LIBS([clock_gettime],[rt])
+AC_SEARCH_LIBS([clock_gettime],[rt],[lach])
 AC_SEARCH_LIBS([aa_la_dls],[amino], [true], [echo "Failed: need amino library" && exit 1])
 AC_SEARCH_LIBS([rfx_ctrl_ws_lin_k_init],[reflex], [true], [echo "Failed: need reflex library" && exit 1])
 
-AC_CHECK_FUNCS([clock_gettime memset pow sqrt sincos])
+AC_CHECK_FUNCS([clock_gettime memset pow sqrt sincos ach_get ach_put])
 
 # Check for thread local storage
 AX_TLS

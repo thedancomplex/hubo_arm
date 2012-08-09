@@ -45,6 +45,68 @@
 #include "config.h"
 #include "hubo_arm.h"
 
+#include <stdio.h>
+
+
+// for timer
+#include <time.h>
+#include <sched.h>
+#include <sys/io.h>
+#include <unistd.h>
+
+// for RT
+#include <stdlib.h>
+#include <sys/mman.h>
+
+// for hubo
+#include <../hubo-ACH/hubo.h>
+
+// for ach
+#include <errno.h>
+#include <fcntl.h>
+#include <assert.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <ctype.h>
+#include <stdbool.h>
+#include <math.h>
+#include <inttypes.h>
+#include "ach.h"
+
+
+// Priority
+#define MY_PRIORITY (49)/* we use 49 as the PRREMPT_RT use 50
+                            as the priority of kernel tasklets
+                            and interrupt handler by default */
+
+#define MAX_SAFE_STACK (1024*1024) /* The maximum stack size which is
+                                   guaranteed safe to access without
+                                   faulting */
+
+
+// Timing info
+#define NSEC_PER_SEC    1000000000
+
+// ach message type
+typedef struct hubo hubo[1];
+
+// ach channels
+ach_channel_t chan_num;
+
+
+
+static inline void tsnorm(struct timespec *ts){
+
+//      clock_nanosleep( NSEC_PER_SEC, TIMER_ABSTIME, ts, NULL);
+        // calculates the next shot
+        while (ts->tv_nsec >= NSEC_PER_SEC) {
+                //usleep(100);  // sleep for 100us (1us = 1/1,000,000 sec)
+                ts->tv_nsec -= NSEC_PER_SEC;
+                ts->tv_sec++;
+        }
+}
+
+
 void hubo_arm_kin( rfx_ctrl_ws_t *G ) {
     double T[12];
     hubo_arm_kin_(G->q, T, T+9, G->J);
@@ -52,10 +114,35 @@ void hubo_arm_kin( rfx_ctrl_ws_t *G ) {
     aa_tf_rotmat2quat( T, G->r );
 }
 
+void stack_prefault(void) {
+        unsigned char dummy[MAX_SAFE_STACK];
+        memset( dummy, 0, MAX_SAFE_STACK );
+}
 
 
 int main( int argc, char **argv ) {
     (void) argc; (void) argv;
+
+// RT 
+        struct sched_param param;
+        /* Declare ourself as a real time task */
+
+        param.sched_priority = MY_PRIORITY;
+        if(sched_setscheduler(0, SCHED_FIFO, &param) == -1) {
+                perror("sched_setscheduler failed");
+                exit(-1);
+        }
+
+        /* Lock memory */
+
+        if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+                perror("mlockall failed");
+                exit(-2);
+        }
+
+        /* Pre-fault our stack */
+        stack_prefault();
+
 
     rfx_ctrl_ws_t G;
     rfx_ctrl_ws_lin_k_t K;
@@ -84,16 +171,37 @@ int main( int argc, char **argv ) {
     double x0[3];
     memcpy( x0, G.x, sizeof(x0) );
 
-    FILE *f_ref = fopen("ref.dat", "w");
-    FILE *f_act = fopen("act.dat", "w");
+//    FILE *f_ref = fopen("ref.dat", "w");
+//    FILE *f_act = fopen("act.dat", "w");
 
-    const double delta_t = 0.1;
-    for( double t = 0; t < 10.0; t += delta_t ) {
+ 
 
+/* Main Loop */
+
+// For timing
+// time info
+        struct timespec t;
+        //int interval = 500000000; // 2hz (0.5 sec)
+        int interval = 10000000; // 100 hz (0.01 sec)
+        double T = 0.01;        // period
+
+    	const double delta_t = T;
+        double f = 0.1;
+	// get current time
+        //clock_gettime( CLOCK_MONOTONIC,&t);
+        clock_gettime( 0,&t);
+
+// get initial values for hubo
+        hubo H;
+        size_t fs;
+        int r = ach_get( &chan_num, H, sizeof(H), &fs, NULL, ACH_O_LAST );
+	double TT = 10.0;
+   for( double tt = 0; tt < TT; tt += delta_t ) {
+	r = ach_get( &chan_num, H, sizeof(H), &fs, NULL, ACH_O_LAST );
         // compute reference position
         // FIXME: would work better with reference velocity too
         memcpy( G.x_r, x0, sizeof(x0) );
-        G.x_r[2] += .05 * sin(t); // do a fist pump, but sinusoidally
+        G.x_r[2] += .05 * sin(2.0*pi*f*tt); // do a fist pump, but sinusoidally
 
         // compute reference velocity
         double dq[6];
@@ -109,21 +217,37 @@ int main( int argc, char **argv ) {
 
         // update kinematics
         hubo_arm_kin( &G );
+	
+	// Write to ach
+	H->joint[RSP].ref = G.q[0];
+	H->joint[RSR].ref = G.q[1];
+	H->joint[RSY].ref = G.q[2];
+	H->joint[REB].ref = G.q[3];
+	H->joint[RWY].ref = G.q[4];
+	H->joint[RWP].ref = G.q[5];
+	ach_put(&chan_num, H, sizeof(H));
 
+	t.tv_nsec+=interval;
+	tsnorm(&t);
+
+	if( tt > (TT - 2*delta_t) ) {
+		tt = 0.0;
+	}
+
+/* Kill the printing	
         printf("%f r:\t", t);
         aa_dump_vec(stdout, G.x_r, 3 );
         printf("%f a:\t", t);
         aa_dump_vec(stdout, G.x, 3 );
 
-
         // print reference and actual for plotting
         fprintf(f_ref, "%f %f\n", t, G.x_r[2]);
         fprintf(f_act, "%f %f\n", t, G.x[2]);
-
+*/
     }
 
-    fclose(f_ref);
-    fclose(f_act);
+//    fclose(f_ref);
+//    fclose(f_act);
 
     /* hubo_arm_kin( (double[]){0,0,0,0,0,0}, T, J ); */
 
