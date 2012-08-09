@@ -37,9 +37,46 @@
  *
  */
 
-#ifndef HUBO_ARM_H
-#define HUBO_ARM_H
 
-void hubo_arm_kin_( const double *q, double *R, double *v, double *J );
+#include <amino.h>
 
-#endif // HUBO_ARM_H
+#include "config.h"
+#include "hubo_arm.h"
+
+void hubo_arm_kin( const double *q, double *T12, double *J ) {
+    hubo_arm_kin_(q, T12, T12+9, J);
+}
+
+int main( int argc, char **argv ) {
+    (void) argc; (void) argv;
+    double T[12], J[6*6];
+
+    hubo_arm_kin( (double[]){0,0,0,0,0,0}, T, J );
+
+    // print some test positions to check the FK
+    printf("down\n");
+    aa_dump_mat(stdout, T, 3, 4 );
+
+    printf("forward\n");
+    hubo_arm_kin( (double[]){-M_PI_2,0,0,0,0,0}, T, J );
+    aa_dump_mat(stdout, T, 3, 4 );
+
+    printf("right\n");
+    hubo_arm_kin( (double[]){0,-M_PI_2,0,0,0,0}, T, J );
+    aa_dump_mat(stdout, T, 3, 4 );
+
+
+    printf("forward-elbow\n");
+    hubo_arm_kin( (double[]){0,0,0,-M_PI_2,0,0}, T, J );
+    aa_dump_mat(stdout, T, 3, 4 );
+
+
+    printf("out-elbow\n");
+    hubo_arm_kin( (double[]){0,0,-M_PI_2,-M_PI_2,0,0}, T, J );
+    aa_dump_mat(stdout, T, 3, 4 );
+
+    /* printf("out\n"); */
+    /* hubo_arm_kin( (double[]){0,0,-M_PI_2,M_PI_2,0,0}, T, J ); */
+    /* aa_dump_mat(stdout, T, 3, 4 ); */
+
+}

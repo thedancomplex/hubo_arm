@@ -5,6 +5,9 @@
 *.in
 *.lo
 *.la
+*.Po
+depcomp
+harmctrl
 /config.h
 /config.log
 /config.status
