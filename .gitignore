@@ -6,6 +6,7 @@
 *.lo
 *.la
 *.Po
+*.tar.gz
 depcomp
 harmctrl
 /config.h
@@ -20,3 +21,5 @@ harmctrl
 /missing
 /src/hubo_kin.f
 /stamp-h1
+/act.dat
+/ref.dat
