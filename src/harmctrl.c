@@ -122,8 +122,9 @@ void stack_prefault(void) {
 
 int main( int argc, char **argv ) {
     (void) argc; (void) argv;
-
-// RT 
+	printf("1\n");
+// RT
+int r = ach_open(&chan_num, "hubo", NULL); 
         struct sched_param param;
         /* Declare ourself as a real time task */
 
@@ -135,7 +136,7 @@ int main( int argc, char **argv ) {
 
         /* Lock memory */
 
-        if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+       if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
                 perror("mlockall failed");
                 exit(-2);
         }
@@ -175,6 +176,7 @@ int main( int argc, char **argv ) {
 //    FILE *f_act = fopen("act.dat", "w");
 
  
+	printf("2\n");
 
 /* Main Loop */
 
@@ -183,7 +185,7 @@ int main( int argc, char **argv ) {
         struct timespec t;
         //int interval = 500000000; // 2hz (0.5 sec)
         int interval = 10000000; // 100 hz (0.01 sec)
-        double T = 0.01;        // period
+        double T = 0.2;        // period
 
     	const double delta_t = T;
         double f = 0.1;
@@ -191,10 +193,12 @@ int main( int argc, char **argv ) {
         //clock_gettime( CLOCK_MONOTONIC,&t);
         clock_gettime( 0,&t);
 
+	printf("3\n");
 // get initial values for hubo
         hubo H;
         size_t fs;
-        int r = ach_get( &chan_num, H, sizeof(H), &fs, NULL, ACH_O_LAST );
+	printf("4\n");
+        r = ach_get( &chan_num, H, sizeof(H), &fs, NULL, ACH_O_LAST );
 	double TT = 10.0;
    for( double tt = 0; tt < TT; tt += delta_t ) {
 	r = ach_get( &chan_num, H, sizeof(H), &fs, NULL, ACH_O_LAST );
