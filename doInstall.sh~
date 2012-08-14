@@ -1,0 +1,2 @@
+sudo automake; ./config.status
+sudo ./configure && make && make install
