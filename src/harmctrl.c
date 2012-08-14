@@ -128,21 +128,21 @@ int r = ach_open(&chan_num, "hubo", NULL);
         struct sched_param param;
         /* Declare ourself as a real time task */
 
-        param.sched_priority = MY_PRIORITY;
-        if(sched_setscheduler(0, SCHED_FIFO, &param) == -1) {
-                perror("sched_setscheduler failed");
-                exit(-1);
-        }
+///        param.sched_priority = MY_PRIORITY;
+///        if(sched_setscheduler(0, SCHED_FIFO, &param) == -1) {
+///                perror("sched_setscheduler failed");
+///                exit(-1);
+///        }
 
         /* Lock memory */
 
-       if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
-                perror("mlockall failed");
-                exit(-2);
-        }
+///       if(mlockall(MCL_CURRENT|MCL_FUTURE) == -1) {
+///                perror("mlockall failed");
+///                exit(-2);
+///        }
 
         /* Pre-fault our stack */
-        stack_prefault();
+///        stack_prefault();
 
 
     rfx_ctrl_ws_t G;
@@ -231,8 +231,9 @@ int r = ach_open(&chan_num, "hubo", NULL);
 	H->joint[RWP].ref = G.q[5];
 	ach_put(&chan_num, H, sizeof(H));
 
-	t.tv_nsec+=interval;
-	tsnorm(&t);
+//	t.tv_nsec+=interval;
+//	tsnorm(&t);
+	usleep(100000);
 
 	if( tt > (TT - 2*delta_t) ) {
 		tt = 0.0;
