@@ -200,13 +200,35 @@ int r = ach_open(&chan_num, "hubo", NULL);
 	printf("4\n");
         r = ach_get( &chan_num, H, sizeof(H), &fs, NULL, ACH_O_LAST );
 	double TT = 10.0;
+	double xx[13] = { -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6 };
+	int ii = 0;
+	double a = 0.03;
    for( double tt = 0; tt < TT; tt += delta_t ) {
+//   for( ii = 0; ii < (13*4); ii++ ) {
 	r = ach_get( &chan_num, H, sizeof(H), &fs, NULL, ACH_O_LAST );
         // compute reference position
         // FIXME: would work better with reference velocity too
         memcpy( G.x_r, x0, sizeof(x0) );
-        G.x_r[2] += .05 * sin(2.0*pi*f*tt); // do a fist pump, but sinusoidally
-
+        G.x_r[2] += a * sin(2.0*pi*f*tt); // do a fist pump, but sinusoidally
+//        G.x_r[1] += a * sin(2.0*pi*f*tt); // do a fist pump, but sinusoidally
+/*
+	if( ii < 13 ) {
+		G.x_r[1] = a*xx[ii];
+		G.x_r[2] = a*xx[0];
+	}
+	else if( ii < 2*13 ) {
+		G.x_r[1] = a*xx[13];
+		G.x_r[2] = a*xx[ii-13];
+	}
+	else if( ii < 3*13 ) {
+		G.x_r[1] = a*xx[3*13-ii];
+		G.x_r[2] = a*xx[13];
+	}
+	else if( ii < 4*13 ) { 
+		G.x_r[1] = a*xx[0];
+		G.x_r[2] = a*xx[4*13-ii];
+	}
+*/
         // compute reference velocity
         double dq[6];
         {
@@ -238,6 +260,9 @@ int r = ach_open(&chan_num, "hubo", NULL);
 	if( tt > (TT - 2*delta_t) ) {
 		tt = 0.0;
 	}
+//	if( ii >= (13*4-1) ) {
+//		ii = 0;
+//	}
 
 /* Kill the printing	
         printf("%f r:\t", t);
